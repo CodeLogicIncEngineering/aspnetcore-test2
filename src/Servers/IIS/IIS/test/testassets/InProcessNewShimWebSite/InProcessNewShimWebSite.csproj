@@ -51,7 +51,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" >
       <AllowExplicitReference>true</AllowExplicitReference>
     </PackageReference>
-    <PackageReference Include="Microsoft.AspNetCore.HttpsPolicy" Version="2.2.0" >
+    <PackageReference Include="Microsoft.AspNetCore.HttpsPolicy" Version="2.3.11" >
       <AllowExplicitReference>true</AllowExplicitReference>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.0" >
