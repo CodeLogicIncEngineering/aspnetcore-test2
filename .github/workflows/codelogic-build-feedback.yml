@@ -1,0 +1,71 @@
+# codelogic-build-feedback
+# Fallback CI: no existing GitHub Actions workflow in this repo builds the
+# .NET code (the real CI lives in Azure Pipelines), so this workflow builds
+# just the project(s) touched by CodeLogic library-upgrade PRs and reports
+# the result back to CodeLogic so failed builds can trigger automated fixes.
+name: CodeLogic Build Feedback
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - 'codelogic/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 50
+
+      - name: Determine changed projects
+        id: changed
+        run: |
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$before" 2>/dev/null; then
+            base="$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)"
+          else
+            base="$before"
+          fi
+          files=$(git diff --name-only "$base" HEAD -- '*.csproj' || true)
+          {
+            echo "files<<CODELOGIC_EOF"
+            echo "$files"
+            echo "CODELOGIC_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build changed projects
+        env:
+          NO_COLOR: "1"
+          TERM: dumb
+        run: |
+          set -o pipefail
+          : > build.log
+          ./restore.sh --ci 2>&1 | tee -a build.log
+          export PATH="$PWD/.dotnet:$PATH"
+          export DOTNET_ROOT="$PWD/.dotnet"
+          status=0
+          while IFS= read -r proj; do
+            [ -z "$proj" ] && continue
+            echo "Building $proj" | tee -a build.log
+            dotnet build "$proj" -c Release 2>&1 | tee -a build.log || status=1
+          done <<< "${{ steps.changed.outputs.files }}"
+          exit $status
+
+      - name: Send CodeLogic Build Info
+        if: always()
+        uses: CodeLogicIncEngineering/codelogic-send-build-info-github-action@v1.0.2
+        with:
+          codelogic_host: ${{ vars.CODELOGIC_HOST }}
+          agent_uuid: ${{ vars.AGENT_UUID }}
+          agent_password: ${{ secrets.AGENT_PASSWORD }}
+          scan_path: /github/workspace
+          job_name: ${{ github.workflow }}
+          build_number: ${{ github.run_number }}
+          build_status: ${{ job.status }}
+          pipeline_system: GitHub Actions
+          log_file: /github/workspace/build.log
