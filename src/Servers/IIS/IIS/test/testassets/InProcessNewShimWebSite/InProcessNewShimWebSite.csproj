@@ -54,7 +54,7 @@
     <PackageReference Include="Microsoft.AspNetCore.HttpsPolicy" Version="2.3.11" >
       <AllowExplicitReference>true</AllowExplicitReference>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.0" >
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.4" >
       <AllowExplicitReference>true</AllowExplicitReference>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" >
