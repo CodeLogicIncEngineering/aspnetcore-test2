@@ -39,7 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" >
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.11" >
       <AllowExplicitReference>true</AllowExplicitReference>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.3.11" >
