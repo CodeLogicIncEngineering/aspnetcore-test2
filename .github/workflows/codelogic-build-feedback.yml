@@ -1,0 +1,51 @@
+# codelogic-build-feedback
+name: CodeLogic Build Feedback
+
+# Fallback build-feedback workflow: none of the existing GitHub Actions
+# workflows in this repo perform a product build (they are bots/utilities),
+# and the repo's real CI lives in .azure/pipelines. This workflow builds the
+# project(s) touched by CodeLogic library-upgrade PRs and reports the result
+# back to CodeLogic so failed builds can trigger automated fixes.
+on:
+  push:
+    branches:
+      - 'codelogic/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install .NET SDK (pinned via global.json)
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        env:
+          NO_COLOR: "1"
+          TERM: "dumb"
+        run: |
+          set -o pipefail
+          dotnet msbuild eng/tools/GenerateFiles/GenerateFiles.csproj -t:Restore
+          dotnet msbuild eng/tools/GenerateFiles/GenerateFiles.csproj -t:GenerateDirectoryBuildFiles
+          dotnet build src/Servers/IIS/IIS/test/testassets/InProcessNewShimWebSite/InProcessNewShimWebSite.csproj 2>&1 | tee "${{ github.workspace }}/build.log"
+
+      - name: Send CodeLogic Build Info
+        if: always()
+        uses: CodeLogicIncEngineering/codelogic-send-build-info-github-action@v1.0.2
+        with:
+          codelogic_host: ${{ vars.CODELOGIC_HOST }}
+          agent_uuid: ${{ vars.AGENT_UUID }}
+          agent_password: ${{ secrets.AGENT_PASSWORD }}
+          scan_path: /github/workspace
+          job_name: ${{ github.workflow }}
+          build_number: ${{ github.run_number }}
+          build_status: ${{ job.status }}
+          pipeline_system: GitHub Actions
+          log_file: /github/workspace/build.log
